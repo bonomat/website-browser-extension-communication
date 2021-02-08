@@ -1,0 +1,38 @@
+@startuml
+' A content script is a part of your extension that runs in the context of a particular web page
+' (as opposed to background scripts which are part of the extension,
+' or scripts which are part of the web site itself, such as those loaded using the <script> element).
+
+box "Webpage" #LightBlue
+
+participant "WebpageUI"             as website
+participant "Page Script"           as PS
+
+participant "Content Script"        as CS
+
+end box
+
+box "Browser Extension" #LightGreen
+
+participant "Background Script"     as BS
+participant "ExtensionUI"           as EX
+
+end box
+
+BS -> website : inject content script
+
+website -> PS: clickButton()
+'create CS
+PS -> CS: "Hello World"
+note left: window.postMessage(...)
+note right: "browser.runtime.connect()"
+
+
+' Connection-based messaging:
+' https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Content_scripts#connection-based_messaging
+CS -> BS : "Hello World"
+note left: port.postMessage(...)
+
+
+
+@enduml
