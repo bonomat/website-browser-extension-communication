@@ -5,7 +5,7 @@ import './App.css';
 // Page Script
 function helloWorld() {
   // Need to send message to content script
-  console.log("Hello World");
+  console.log("PS: Hello World");
 
   window.postMessage({
     direction: "from-page-script",

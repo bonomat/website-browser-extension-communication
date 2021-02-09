@@ -2,13 +2,15 @@
 
 browser.runtime.onMessage.addListener(notify);
 
-let msg = "Hellow world";
-
-function notify(message) {
-  console.log(`Background script received message from content script: '${message.message}'`);
-  msg = message.message;
+function notify(event) {
+  if (event.direction === "from-content-script") {
+    console.log(`BS: received message from CS: '${event.message}'`);
+    setItem(event.message);
+  }
 }
 
-export function getMsg() {
-  return msg;
+let item = "not set";
+
+function setItem(i) {
+  item = i;
 }

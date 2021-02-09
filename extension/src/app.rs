@@ -1,14 +1,15 @@
+use wasm_bindgen::prelude::*;
 use yew::prelude::*;
 
 pub struct App {
-    msg: String
+    msg: String,
 }
 
 pub enum Msg {}
 
-#[wasm_bindgen(module = "background_script.js")]
+#[wasm_bindgen(module = "/src/js/popup_script.js")]
 extern "C" {
-    fn getMsg() -> String;
+    fn postMessage();
 }
 
 impl Component for App {
@@ -16,8 +17,9 @@ impl Component for App {
     type Properties = ();
 
     fn create(_: Self::Properties, _: ComponentLink<Self>) -> Self {
-
-        App { msg: getMsg() }
+        postMessage();
+        let msg = "hello world".to_string();
+        App { msg }
     }
 
     fn update(&mut self, _msg: Self::Message) -> ShouldRender {
@@ -30,15 +32,11 @@ impl Component for App {
 
     fn view(&self) -> Html {
         html! {
-            <p>{ "Hello World!" }</p>
+            <p>{ self.msg.clone() }</p>
         }
     }
 
-    fn rendered(&mut self, _first_render: bool) {
+    fn rendered(&mut self, _first_render: bool) {}
 
-    }
-
-    fn destroy(&mut self) {
-
-    }
+    fn destroy(&mut self) {}
 }
