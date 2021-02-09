@@ -15,7 +15,7 @@ end box
 box "Browser Extension" #LightGreen
 
 participant "Background Script"     as BS
-participant "ExtensionUI"           as EX
+participant "Popup Script/UI"       as PUS
 
 end box
 
@@ -23,15 +23,17 @@ BS -> website : inject content script
 
 website -> PS: clickButton()
 'create CS
-PS -> CS: "Hello World"
-note left: window.postMessage(...)
-note right: "browser.runtime.connect()"
+PS -> CS: sendMessage("Hello World")
+note left: window.postMessage
 
 
 ' Connection-based messaging:
 ' https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Content_scripts#connection-based_messaging
-CS -> BS : "Hello World"
-note left: port.postMessage(...)
+CS -> BS : sendMessage("Hello World")
+note left: browser.runtime.sendMessage
+
+PUS -> BS : BS.getX()
+'Cannot open UI from BS
 
 
 
