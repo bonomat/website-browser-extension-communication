@@ -1,0 +1,19 @@
+{
+  "manifest_version": 2,
+  "name": "Waves-wallet",
+  "version": "0.0.1",
+  "description": "A Liquid Wallet",
+
+  "background": {
+    "page": "background.html"
+  },
+
+  "browser_action": {
+    "default_title": "Waves-wallet",
+    "browser_style": true,
+    "default_popup": "popup.html"
+  },
+  "permissions": [],
+  "content_scripts": [],
+  "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self'"
+}
