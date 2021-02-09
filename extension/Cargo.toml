@@ -1,2 +1,2 @@
 [workspace]
-members = ["src/background"]
+members = ["src/background", "src/content"]
