@@ -1,8 +1,9 @@
-use js_sys::{Object, Promise};
+use js_sys::{Function, Object, Promise};
 use serde::Deserialize;
 use serde::Serialize;
 use std::future::Future;
 use wasm_bindgen::prelude::*;
+use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::{spawn_local, JsFuture};
 
 #[wasm_bindgen]
@@ -22,10 +23,10 @@ extern "C" {
     pub static browser: Browser;
 
     #[wasm_bindgen(method, getter)]
-    pub fn sidebar_action(this: &Browser) -> Sidebar;
+    pub fn windows(this: &Browser) -> Windows;
 
     #[wasm_bindgen(method, getter)]
-    pub fn windows(this: &Browser) -> Windows;
+    pub fn runtime(this: &Browser) -> Runtime;
 
 }
 
@@ -45,30 +46,47 @@ extern "C" {
     pub fn create(this: &Windows, info: &Object) -> Promise;
 }
 
+#[wasm_bindgen]
+extern "C" {
+    pub type Runtime;
+
+    #[wasm_bindgen(method, getter, js_name = onMessage)]
+    pub fn on_message(this: &Runtime) -> Event;
+}
+
+#[wasm_bindgen]
+extern "C" {
+    pub type Event;
+
+    #[wasm_bindgen(method, js_name = addListener)]
+    pub fn add_listener(this: &Event, callback: &Function);
+
+}
+
 #[wasm_bindgen(start)]
 pub fn main() {
     wasm_logger::init(wasm_logger::Config::new(log::Level::Debug));
     log::info!("Hello World from Background Script");
 
-    let popup = Popup {
-        url: "popup.html".to_string(),
-        type_: "popup".to_string(),
-        height: 200,
-        width: 200,
-    };
-    let js_value = JsValue::from_serde(&popup).unwrap();
+    let closure = Closure::wrap(Box::new(|msg: JsValue| {
+        log::info!("Received: {}", msg.as_string().unwrap());
+        let popup = Popup {
+            url: "popup.html".to_string(),
+            type_: "popup".to_string(),
+            height: 200,
+            width: 200,
+        };
+        let js_value = JsValue::from_serde(&popup).unwrap();
+        let object = Object::try_from(&js_value).unwrap();
+        let _x = browser.windows().create(&object);
+    }) as Box<dyn FnMut(_)>);
 
-    log::info!("Are you available js_value? {:?}", js_value.is_object());
-    let object = Object::try_from(&js_value).unwrap();
-    log::info!("Are you available object? {:?}", object);
-    let x = browser.windows().create(&object);
-    log::info!("Are you available window ? {:?}", x);
+    browser
+        .runtime()
+        .on_message()
+        .add_listener(closure.as_ref().unchecked_ref());
 
-    // let future = browser.sidebar_action().open();
-    // spawn(async move {
-    //     let _ = JsFuture::from(future).await?;
-    //     Ok(())
-    // });
+    closure.forget();
 }
 
 #[derive(Serialize, Deserialize)]
@@ -79,17 +97,3 @@ struct Popup {
     pub height: u8,
     pub width: u8,
 }
-
-// pub fn unwrap_future<F>(future: F) -> impl Future<Output = ()>
-//     where F: Future<Output = Result<(), JsValue>> {
-//     async {
-//         if let Err(e) = future.await {
-//             log::error!("{:?}",&e);
-//         }
-//     }
-// }
-//
-//
-// pub fn spawn<A>(future: A) where A: Future<Output = Result<(), JsValue>> + 'static {
-//     spawn_local(unwrap_future(future))
-// }
