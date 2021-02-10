@@ -1,0 +1,42 @@
+@startuml
+' A content script is a part of your extension that runs in the context of a particular web page
+' (as opposed to background scripts which are part of the extension,
+' or scripts which are part of the web site itself, such as those loaded using the <script> element).
+
+box "Webpage" #LightBlue
+participant "Page Script/UI"        as PS
+participant "Content Script"        as CS
+end box
+
+box "Browser Extension" #LightGreen
+
+participant "Background Script"     as BS
+participant "Popup Script"          as PUS
+participant "Popup UI"              as POP
+
+end box
+
+
+POP -> PUS: password
+PUS -> BS: unlock(password)
+
+
+' assume that CS was injected into webapp <script>
+' PS has now access to window.wallet
+
+PS -> CS: window.wallet.createSwapPayload(a, b)
+CS -> BS: wallet.createSwapPayload(a,b)
+BS -> CS: payload
+CS -> PS: payload
+PS -> PS: postToBobtimus(payload)
+
+PS -> CS: window.wallet.sign(tx)
+CS -> BS: wallet.sign(tx)
+BS -> POP: window.open(tx)
+POP -> BS: sign(tx)
+BS -> BS: publish(tx)
+
+BS -> CS: txID
+CS -> PS: txID
+
+@enduml
