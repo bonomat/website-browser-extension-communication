@@ -4,6 +4,7 @@
   "version": "0.0.1",
   "scripts": {
     "build": "rimraf dist && rollup --config",
+    "watch": "rollup --config --watch",
     "start-dev": "web-ext run -s dist/"
   },
   "devDependencies": {
