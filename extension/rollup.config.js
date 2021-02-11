@@ -9,8 +9,6 @@ export default [
     output: {
       dir: "dist",
       format: "esm",
-      sourcemap: true,
-      // TODO source map URL is missing the js/
       entryFileNames: "js/[name].js",
     },
     plugins: [
@@ -34,8 +32,6 @@ export default [
     output: {
       dir: "dist",
       format: "iife",
-      sourcemap: true,
-      // TODO source map URL is missing the js/
       entryFileNames: "js/[name].js",
     },
     plugins: [
@@ -59,7 +55,6 @@ export default [
     output: {
       dir: "dist",
       format: "esm",
-      sourcemap: true,
       entryFileNames: "js/[name].js",
     },
     plugins: [
