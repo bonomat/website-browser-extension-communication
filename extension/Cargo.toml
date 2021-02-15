@@ -1,11 +1,11 @@
 [package]
-name = "Waves-wallet"
+name = "waves_wallet"
 version = "0.2.0"
 authors = ["Philipp Hoenisch <philipp@hoenisch.at"]
 edition = "2018"
 
 [workspace]
-members = ["src/background", "src/content"]
+members = ["src/background", "src/content", "src/in_page"]
 
 [lib]
 crate-type = ["cdylib", "rlib"]

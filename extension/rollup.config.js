@@ -13,7 +13,6 @@ export default [
     },
     plugins: [
       rust({
-        outDir: "js",
         importHook: function (path) {
           return "browser.runtime.getURL(" + JSON.stringify(path) + ")";
         },
@@ -36,7 +35,6 @@ export default [
     },
     plugins: [
       rust({
-        outDir: "js",
         importHook: function (path) {
           return "browser.runtime.getURL(" + JSON.stringify(path) + ")";
         },
@@ -44,6 +42,26 @@ export default [
       copy({
         targets: [
           {src: 'src/content/dist/*', dest: 'dist'},
+        ]
+      })
+    ],
+  },
+  {
+    input: {
+      in_page: "src/in_page/Cargo.toml"
+    },
+    output: {
+      dir: "dist",
+      format: "esm",
+      entryFileNames: "js/[name].js",
+    },
+    plugins: [
+      rust({
+        inlineWasm: true
+      }),
+      copy({
+        targets: [
+          {src: 'src/in_page/dist/*', dest: 'dist'},
         ]
       })
     ],
@@ -59,7 +77,6 @@ export default [
     },
     plugins: [
       rust({
-        outDir: "js",
         importHook: function (path) {
           return "browser.runtime.getURL(" + JSON.stringify(path) + ")";
         },

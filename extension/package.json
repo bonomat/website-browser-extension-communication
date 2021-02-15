@@ -1,6 +1,6 @@
 {
   "private": true,
-  "name": "waves-wallet",
+  "name": "waves_wallet",
   "version": "0.0.1",
   "scripts": {
     "build": "rimraf dist && rollup --config",

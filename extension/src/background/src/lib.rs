@@ -1,10 +1,8 @@
 use js_sys::{Function, Object, Promise};
 use serde::Deserialize;
 use serde::Serialize;
-use std::future::Future;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
-use wasm_bindgen_futures::{spawn_local, JsFuture};
 
 #[wasm_bindgen]
 extern "C" {

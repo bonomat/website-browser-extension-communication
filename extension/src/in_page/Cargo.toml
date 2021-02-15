@@ -1,5 +1,5 @@
 [package]
-name = "content"
+name = "in_page"
 version = "0.1.0"
 authors = ["Philipp Hoenisch <philipp@hoenisch.at>"]
 edition = "2018"
@@ -23,9 +23,5 @@ features = [
     'Element',
     'HtmlElement',
     'Node',
-    'Window',
-    'Request',
-    'RequestInit',
-    'RequestMode',
-    'Response',
+    'Window'
 ]

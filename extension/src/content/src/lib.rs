@@ -1,7 +1,5 @@
-use js_sys::{Function, Object, Promise};
-use std::future::Future;
+use js_sys::Function;
 use wasm_bindgen::prelude::*;
-use wasm_bindgen_futures::{spawn_local, JsFuture};
 
 #[wasm_bindgen]
 extern "C" {
@@ -16,13 +14,8 @@ extern "C" {
 extern "C" {
     pub type Runtime;
 
-    #[wasm_bindgen(method, js_name = sendMessage)]
-    pub fn send_message(
-        this: &Runtime,
-        extension_id: Option<&str>,
-        message: &JsValue,
-        options: Option<&Object>,
-    ) -> Promise;
+    #[wasm_bindgen(method, js_name = getURL)]
+    pub fn get_url(this: &Runtime, path: String) -> String;
 }
 
 #[wasm_bindgen]
@@ -35,32 +28,24 @@ extern "C" {
 }
 
 #[wasm_bindgen(start)]
-pub fn main() {
+pub async fn main() -> Result<(), JsValue> {
     wasm_logger::init(wasm_logger::Config::new(log::Level::Debug));
     log::info!("Hello World from Content Script");
 
-    let value = JsValue::from("Hello World");
-    let future = browser.runtime().send_message(None, &value, None);
-    spawn(async move {
-        let _ = JsFuture::from(future).await?;
-        Ok(())
-    });
-}
+    let window = web_sys::window().expect("no global `window` exists");
+    let document = window.document().expect("should have a document on window");
+    let head = document.head().expect("document should have a body");
 
-pub fn unwrap_future<F>(future: F) -> impl Future<Output = ()>
-where
-    F: Future<Output = Result<(), JsValue>>,
-{
-    async {
-        if let Err(e) = future.await {
-            log::error!("{:?}", &e);
-        }
-    }
-}
+    let url = browser.runtime().get_url("js/in_page.js".to_string());
 
-pub fn spawn<A>(future: A)
-where
-    A: Future<Output = Result<(), JsValue>> + 'static,
-{
-    spawn_local(unwrap_future(future))
+    // Create new script tag
+    let script_tag = document.create_element("script").unwrap();
+    script_tag.set_attribute("src", &url).unwrap();
+    script_tag.set_attribute("type", "module").unwrap();
+
+    // add script to the top
+    let first_child = head.first_child();
+    head.insert_before(&script_tag, first_child.as_ref())
+        .unwrap();
+    Ok(())
 }
