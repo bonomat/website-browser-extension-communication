@@ -1,5 +1,8 @@
-use js_sys::Function;
+use js_sys::{Function, Promise};
+use serde::Deserialize;
 use wasm_bindgen::prelude::*;
+use wasm_bindgen::JsCast;
+use web_sys::MessageEvent;
 
 #[wasm_bindgen]
 extern "C" {
@@ -16,6 +19,9 @@ extern "C" {
 
     #[wasm_bindgen(method, js_name = getURL)]
     pub fn get_url(this: &Runtime, path: String) -> String;
+
+    #[wasm_bindgen(method, js_name = sendMessage)]
+    pub fn send_message(this: &Runtime, value: JsValue) -> Promise;
 }
 
 #[wasm_bindgen]
@@ -27,13 +33,26 @@ extern "C" {
 
 }
 
+#[wasm_bindgen]
+extern "C" {
+    #[derive(Debug)]
+    pub type Window;
+
+    pub static window: Window;
+
+    #[wasm_bindgen(method, js_name = addEventListener)]
+    pub fn add_event_listener(this: &Window, event: String, callback: &Function) -> JsValue;
+}
+
 #[wasm_bindgen(start)]
 pub async fn main() -> Result<(), JsValue> {
     wasm_logger::init(wasm_logger::Config::new(log::Level::Debug));
     log::info!("Hello World from Content Script");
 
-    let window = web_sys::window().expect("no global `window` exists");
-    let document = window.document().expect("should have a document on window");
+    let rs_window = web_sys::window().expect("no global `window` exists");
+    let document = rs_window
+        .document()
+        .expect("should have a document on window");
     let head = document.head().expect("document should have a body");
 
     let url = browser.runtime().get_url("js/in_page.js".to_string());
@@ -47,5 +66,20 @@ pub async fn main() -> Result<(), JsValue> {
     let first_child = head.first_child();
     head.insert_before(&script_tag, first_child.as_ref())
         .unwrap();
+
+    // create listener
+    let cb = Closure::wrap(Box::new(|msg: MessageEvent| {
+        let js_value: JsValue = msg.data();
+        let string = js_value.as_string().unwrap();
+        log::info!("Received message from in-page script {:?}", string);
+    }) as Box<dyn Fn(_)>);
+    window.add_event_listener("message".to_string(), cb.as_ref().unchecked_ref());
+
+    cb.forget();
     Ok(())
+}
+
+#[derive(Deserialize)]
+struct Message {
+    pub data: String,
 }

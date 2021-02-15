@@ -12,12 +12,13 @@ function helloWorld() {
   // Need to send message to content script
 
   // @ts-ignore
-  console.log(window.add_one(1));
+  console.log(window.call_backend("Hello"));
 
-  window.postMessage({
-    direction: "from-page-script",
-    message: "Message from the page"
-  }, "*");
+
+  // window.postMessage({
+  //   direction: "from-page-script",
+  //   message: "Message from the page"
+  // }, "*");
 }
 
 function App() {
