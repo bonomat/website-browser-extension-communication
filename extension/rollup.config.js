@@ -16,11 +16,6 @@ export default [
         importHook: function (path) {
           return "browser.runtime.getURL(" + JSON.stringify(path) + ")";
         },
-      }),
-      copy({
-        targets: [
-          {src: 'static/*', dest: 'dist'},
-        ]
       })
     ],
   },
@@ -38,11 +33,6 @@ export default [
         importHook: function (path) {
           return "browser.runtime.getURL(" + JSON.stringify(path) + ")";
         },
-      }),
-      copy({
-        targets: [
-          {src: 'src/content/dist/*', dest: 'dist'},
-        ]
       })
     ],
   },
@@ -58,11 +48,6 @@ export default [
     plugins: [
       rust({
         inlineWasm: true
-      }),
-      copy({
-        targets: [
-          {src: 'src/in_page/dist/*', dest: 'dist'},
-        ]
       })
     ],
   },

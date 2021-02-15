@@ -2,10 +2,17 @@ import React from 'react';
 
 import './App.css';
 
+// interface InPage {
+//   add: (num: number) => number
+// }
+
+
 // Page Script
 function helloWorld() {
   // Need to send message to content script
-  console.log("PS: Hello World");
+
+  // @ts-ignore
+  console.log(window.add_one(1));
 
   window.postMessage({
     direction: "from-page-script",
@@ -14,6 +21,8 @@ function helloWorld() {
 }
 
 function App() {
+
+  console.log("Page Script: Hello World");
   return (
     <div className="App">
       <header className="App-header">
