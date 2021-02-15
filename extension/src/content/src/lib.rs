@@ -72,6 +72,8 @@ pub async fn main() -> Result<(), JsValue> {
         let js_value: JsValue = msg.data();
         let string = js_value.as_string().unwrap();
         log::info!("Received message from in-page script {:?}", string);
+
+        browser.runtime().send_message(js_value);
     }) as Box<dyn Fn(_)>);
     window.add_event_listener("message".to_string(), cb.as_ref().unchecked_ref());
 
