@@ -77,7 +77,8 @@ pub fn main() {
         let js_value = JsValue::from_serde(&popup).unwrap();
         let object = Object::try_from(&js_value).unwrap();
         let _x = browser.windows().create(&object);
-    }) as Box<dyn FnMut(_)>);
+        return "World".to_string();
+    }) as Box<dyn Fn(_) -> String>);
 
     browser
         .runtime()

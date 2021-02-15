@@ -1,7 +1,9 @@
 use js_sys::{Function, Promise};
 use serde::Deserialize;
+use std::future::Future;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
+use wasm_bindgen_futures::{spawn_local, JsFuture};
 use web_sys::MessageEvent;
 
 #[wasm_bindgen]
@@ -73,7 +75,12 @@ pub async fn main() -> Result<(), JsValue> {
         let string = js_value.as_string().unwrap();
         log::info!("Received message from in-page script {:?}", string);
 
-        browser.runtime().send_message(js_value);
+        let future = browser.runtime().send_message(js_value);
+        spawn(async move {
+            let resp = JsFuture::from(future).await?;
+            log::info!("Received response from background script: {:?}", resp);
+            Ok(())
+        });
     }) as Box<dyn Fn(_)>);
     window.add_event_listener("message".to_string(), cb.as_ref().unchecked_ref());
 
@@ -81,7 +88,20 @@ pub async fn main() -> Result<(), JsValue> {
     Ok(())
 }
 
-#[derive(Deserialize)]
-struct Message {
-    pub data: String,
+pub fn unwrap_future<F>(future: F) -> impl Future<Output = ()>
+where
+    F: Future<Output = Result<(), JsValue>>,
+{
+    async {
+        if let Err(e) = future.await {
+            log::error!("{:?}", &e);
+        }
+    }
+}
+
+pub fn spawn<A>(future: A)
+where
+    A: Future<Output = Result<(), JsValue>> + 'static,
+{
+    spawn_local(unwrap_future(future))
 }
