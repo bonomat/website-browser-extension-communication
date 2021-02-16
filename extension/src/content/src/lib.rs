@@ -1,10 +1,8 @@
-use futures::channel::oneshot;
-use futures::{FutureExt, TryFutureExt};
-use js_sys::{Function, Promise};
+use js_sys::Promise;
+use serde::Serialize;
 use std::future::Future;
 use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsCast;
-use wasm_bindgen_futures::{future_to_promise, spawn_local, JsFuture};
+use wasm_bindgen_futures::{spawn_local, JsFuture};
 use web_sys::MessageEvent;
 
 #[wasm_bindgen]
@@ -29,26 +27,20 @@ extern "C" {
 
 #[wasm_bindgen]
 extern "C" {
-    pub type Event;
-
-    #[wasm_bindgen(method, js_name = addListener)]
-    pub fn add_listener(this: &Event, closure: &Closure<dyn Fn(JsValue) -> Promise>);
-
-}
-
-#[wasm_bindgen]
-extern "C" {
     #[derive(Debug)]
     pub type Window;
 
     pub static window: Window;
+
+    #[wasm_bindgen(method, js_name = postMessage)]
+    pub fn post_message(this: &Window, value: JsValue);
 
     #[wasm_bindgen(method, js_name = addEventListener)]
     pub fn add_event_listener(
         this: &Window,
         event: String,
         // TODO: do we have to use MessageEvent here?
-        closure: &Closure<dyn Fn(MessageEvent) -> Promise>,
+        closure: &Closure<dyn Fn(MessageEvent)>,
     ) -> JsValue;
 }
 
@@ -81,32 +73,34 @@ pub async fn main() -> Result<(), JsValue> {
         let string = js_value.as_string().unwrap();
         log::info!("CS: Received from IPS: {:?}", string);
 
-        let (sender, receiver) = oneshot::channel::<JsValue>();
-
         let resp: Promise = browser.runtime().send_message(js_value);
         spawn(async move {
             let resp = JsFuture::from(resp).await?;
-            sender.send(resp);
+            log::info!("CS: Received response from BS: {:?}", resp);
+
+            window.post_message(
+                JsValue::from_serde(&Message {
+                    data: resp.as_string().unwrap(),
+                    target: "in-page".to_string(),
+                })
+                .unwrap(),
+            );
             Ok(())
         });
-        // let resp = JsFuture::from(resp).await.unwrap();
-        // log::info!("CS: Received response from BS: {:?}", resp);
-
-        return future_to_promise(
-            receiver
-                .inspect_ok(|resp| {
-                    log::info!("CS: Received response from BS: {:?}", resp);
-                })
-                .map_err(|er| JsValue::from(er.to_string())),
-        );
     };
 
-    let cb = Closure::wrap(Box::new(func) as Box<dyn Fn(_) -> Promise>);
+    let cb = Closure::wrap(Box::new(func) as Box<dyn Fn(_)>);
     window.add_event_listener("message".to_string(), &cb);
 
     cb.forget();
 
     Ok(())
+}
+
+#[derive(Serialize)]
+struct Message {
+    data: String,
+    target: String,
 }
 
 pub fn unwrap_future<F>(future: F) -> impl Future<Output = ()>

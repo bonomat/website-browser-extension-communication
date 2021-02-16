@@ -1,10 +1,9 @@
-use futures::channel::oneshot;
-use futures::TryFutureExt;
-use js_sys::{global, Promise};
-use js_sys::{Function, Object};
+use futures::{channel::mpsc, StreamExt};
+use js_sys::{global, Object, Promise};
+use serde::Deserialize;
 use std::future::Future;
 use wasm_bindgen::prelude::*;
-use wasm_bindgen_futures::{future_to_promise, spawn_local, JsFuture};
+use wasm_bindgen_futures::{future_to_promise, spawn_local};
 use web_sys::MessageEvent;
 
 #[wasm_bindgen(start)]
@@ -25,21 +24,20 @@ pub fn main() {
 pub fn call_backend(txt: String) -> Promise {
     let js_value = JsValue::from(txt);
 
-    let (sender, receiver) = oneshot::channel::<JsValue>();
+    let (mut sender, mut receiver) = mpsc::channel::<JsValue>(10);
     // create listener
     let func = move |msg: MessageEvent| {
-        if msg.origin() == localhost
-            return;
         let js_value: JsValue = msg.data();
-        let string = js_value.as_string().unwrap();
-        log::info!("IPS: Received from {:?}: {:?}", msg.origin(), string);
+        let message: Message = js_value.into_serde().unwrap();
 
-        // callback(string);
-        sender.send(JsValue::from_str(&string));
-        return Promise::resolve(&JsValue::from(""));
+        if message.target == "in-page" {
+            log::info!("IPS: Received from {:?}: {:?}", msg.origin(), message.data);
+
+            sender.try_send(JsValue::from_str(&message.data)).unwrap();
+        }
     };
 
-    let closure = Closure::once(func);
+    let closure = Closure::wrap(Box::new(func) as Box<dyn FnMut(_)>);
 
     // TODO remove event listener again
     window.add_event_listener("message".to_string(), &closure);
@@ -47,13 +45,18 @@ pub fn call_backend(txt: String) -> Promise {
     window.post_message(js_value);
     closure.forget();
 
-    return future_to_promise(
-        receiver
-            .inspect_ok(|resp| {
-                log::info!("IPS: Received response from CS: {:?}", resp);
-            })
-            .map_err(|er| JsValue::from(er.to_string())),
-    );
+    let fut = async move {
+        let response = receiver.next().await;
+        response.ok_or_else(|| JsValue::from_str("IPS: No response from CS"))
+    };
+
+    return future_to_promise(fut);
+}
+
+#[derive(Deserialize)]
+struct Message {
+    data: String,
+    target: String,
 }
 
 #[wasm_bindgen]
@@ -64,14 +67,14 @@ extern "C" {
     pub static window: Window;
 
     #[wasm_bindgen(method, js_name = postMessage)]
-    pub fn post_message(this: &Window, value: JsValue) -> Promise;
+    pub fn post_message(this: &Window, value: JsValue);
 
     #[wasm_bindgen(method, js_name = addEventListener)]
     pub fn add_event_listener(
         this: &Window,
         event: String,
         // TODO: do we have to use MessageEvent here?
-        closure: &Closure<dyn FnMut(MessageEvent) -> Promise>,
+        closure: &Closure<dyn FnMut(MessageEvent)>,
     ) -> JsValue;
 }
 
