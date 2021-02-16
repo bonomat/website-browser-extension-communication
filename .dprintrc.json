@@ -12,7 +12,8 @@
     "**/dist",
     "**/pkg",
     "**/node_modules",
-    "**/build"
+    "**/build",
+    "**/target"
   ],
   "plugins": [
     "https://plugins.dprint.dev/markdown-0.4.1.wasm",
