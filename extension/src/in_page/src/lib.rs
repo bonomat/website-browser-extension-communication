@@ -31,7 +31,7 @@ pub fn call_backend(txt: String) -> Promise {
         let message: Message = js_value.into_serde().unwrap();
 
         if message.target == "in-page" {
-            log::info!("IPS: Received from {:?}: {:?}", msg.origin(), message.data);
+            log::info!("IPS: Received response from CS: {:?}", message.data);
 
             sender.try_send(JsValue::from_str(&message.data)).unwrap();
         }
