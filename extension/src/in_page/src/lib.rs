@@ -1,3 +1,4 @@
+extern crate console_error_panic_hook;
 use futures::{channel::mpsc, StreamExt};
 use js_sys::{global, Object, Promise};
 use serde::Deserialize;
@@ -8,6 +9,9 @@ use web_sys::MessageEvent;
 
 #[wasm_bindgen(start)]
 pub fn main() {
+    #[cfg(feature = "console_error_panic_hook")]
+    console_error_panic_hook::set_once();
+
     wasm_logger::init(wasm_logger::Config::new(log::Level::Debug));
     log::info!("IPS: Hello World");
 
@@ -28,12 +32,15 @@ pub fn call_backend(txt: String) -> Promise {
     // create listener
     let func = move |msg: MessageEvent| {
         let js_value: JsValue = msg.data();
-        let message: Message = js_value.into_serde().unwrap();
 
-        if message.target == "in-page" {
-            log::info!("IPS: Received response from CS: {:?}", message.data);
+        let message: Result<Message, _> = js_value.into_serde();
+        if let Ok(Message { target, data }) = message {
+            if target != "in-page" {
+                return;
+            }
 
-            sender.try_send(JsValue::from_str(&message.data)).unwrap();
+            log::info!("IPS: Received response from CS: {:?}", data);
+            sender.try_send(JsValue::from_str(&data)).unwrap();
         }
     };
 
