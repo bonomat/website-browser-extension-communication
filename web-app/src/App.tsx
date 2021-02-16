@@ -8,11 +8,12 @@ import './App.css';
 
 
 // Page Script
-function helloWorld() {
+async function helloWorld() {
   // Need to send message to content script
 
   // @ts-ignore
-  console.log(window.call_backend("Hello"));
+  let message = await window.call_backend("Hello");
+  console.log(`PS: received from IPS: ${message}`);
 
 
   // window.postMessage({
@@ -27,7 +28,8 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <button onClick={helloWorld}>Hello World</button>
+        <button onClick={async () => { await helloWorld(); }
+        }>Hello World</button>
       </header>
     </div>
   );

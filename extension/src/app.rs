@@ -26,11 +26,7 @@ impl Component for App {
         }
     }
 
-    fn rendered(&mut self, _first_render: bool) {
+    fn rendered(&mut self, _first_render: bool) {}
 
-    }
-
-    fn destroy(&mut self) {
-
-    }
+    fn destroy(&mut self) {}
 }

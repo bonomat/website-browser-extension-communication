@@ -1,9 +1,10 @@
+use futures::channel::oneshot;
+use futures::{FutureExt, TryFutureExt};
 use js_sys::{Function, Promise};
-use serde::Deserialize;
 use std::future::Future;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
-use wasm_bindgen_futures::{spawn_local, JsFuture};
+use wasm_bindgen_futures::{future_to_promise, spawn_local, JsFuture};
 use web_sys::MessageEvent;
 
 #[wasm_bindgen]
@@ -31,7 +32,7 @@ extern "C" {
     pub type Event;
 
     #[wasm_bindgen(method, js_name = addListener)]
-    pub fn add_listener(this: &Event, callback: &Function);
+    pub fn add_listener(this: &Event, closure: &Closure<dyn Fn(JsValue) -> Promise>);
 
 }
 
@@ -43,13 +44,18 @@ extern "C" {
     pub static window: Window;
 
     #[wasm_bindgen(method, js_name = addEventListener)]
-    pub fn add_event_listener(this: &Window, event: String, callback: &Function) -> JsValue;
+    pub fn add_event_listener(
+        this: &Window,
+        event: String,
+        // TODO: do we have to use MessageEvent here?
+        closure: &Closure<dyn Fn(MessageEvent) -> Promise>,
+    ) -> JsValue;
 }
 
 #[wasm_bindgen(start)]
 pub async fn main() -> Result<(), JsValue> {
     wasm_logger::init(wasm_logger::Config::new(log::Level::Debug));
-    log::info!("Hello World from Content Script");
+    log::info!("CS: Hello World");
 
     let rs_window = web_sys::window().expect("no global `window` exists");
     let document = rs_window
@@ -70,21 +76,36 @@ pub async fn main() -> Result<(), JsValue> {
         .unwrap();
 
     // create listener
-    let cb = Closure::wrap(Box::new(|msg: MessageEvent| {
+    let func = |msg: MessageEvent| {
         let js_value: JsValue = msg.data();
         let string = js_value.as_string().unwrap();
-        log::info!("Received message from in-page script {:?}", string);
+        log::info!("CS: Received from IPS: {:?}", string);
 
-        let future = browser.runtime().send_message(js_value);
+        let (sender, receiver) = oneshot::channel::<JsValue>();
+
+        let resp: Promise = browser.runtime().send_message(js_value);
         spawn(async move {
-            let resp = JsFuture::from(future).await?;
-            log::info!("Received response from background script: {:?}", resp);
+            let resp = JsFuture::from(resp).await?;
+            sender.send(resp);
             Ok(())
         });
-    }) as Box<dyn Fn(_)>);
-    window.add_event_listener("message".to_string(), cb.as_ref().unchecked_ref());
+        // let resp = JsFuture::from(resp).await.unwrap();
+        // log::info!("CS: Received response from BS: {:?}", resp);
+
+        return future_to_promise(
+            receiver
+                .inspect_ok(|resp| {
+                    log::info!("CS: Received response from BS: {:?}", resp);
+                })
+                .map_err(|er| JsValue::from(er.to_string())),
+        );
+    };
+
+    let cb = Closure::wrap(Box::new(func) as Box<dyn Fn(_) -> Promise>);
+    window.add_event_listener("message".to_string(), &cb);
 
     cb.forget();
+
     Ok(())
 }
 

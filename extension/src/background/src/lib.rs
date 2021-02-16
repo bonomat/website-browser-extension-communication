@@ -57,34 +57,32 @@ extern "C" {
     pub type Event;
 
     #[wasm_bindgen(method, js_name = addListener)]
-    pub fn add_listener(this: &Event, callback: &Function);
+    pub fn add_listener(this: &Event, closure: &Closure<dyn Fn(JsValue) -> Promise>);
 
 }
 
 #[wasm_bindgen(start)]
 pub fn main() {
     wasm_logger::init(wasm_logger::Config::new(log::Level::Debug));
-    log::info!("Hello World from Background Script");
+    log::info!("BS: Hello World");
 
-    let closure = Closure::wrap(Box::new(|msg: JsValue| {
-        log::info!("Received: {}", msg.as_string().unwrap());
-        let popup = Popup {
-            url: "popup.html".to_string(),
-            type_: "popup".to_string(),
-            height: 200,
-            width: 200,
-        };
-        let js_value = JsValue::from_serde(&popup).unwrap();
-        let object = Object::try_from(&js_value).unwrap();
-        let _x = browser.windows().create(&object);
-        return "World".to_string();
-    }) as Box<dyn Fn(_) -> String>);
+    /*        let popup = Popup {
+        url: "popup.html".to_string(),
+        type_: "popup".to_string(),
+        height: 200,
+        width: 200,
+    };
+    let js_value = JsValue::from_serde(&popup).unwrap();
+    let object = Object::try_from(&js_value).unwrap();
+    let _x = browser.windows().create(&object);*/
 
-    browser
-        .runtime()
-        .on_message()
-        .add_listener(closure.as_ref().unchecked_ref());
-
+    let func = |msg: JsValue| {
+        log::info!("BS: Received from CS: {}", msg.as_string().unwrap());
+        let response = JsValue::from("World");
+        return Promise::resolve(&response);
+    };
+    let closure = Closure::wrap(Box::new(func) as Box<dyn Fn(_) -> Promise>);
+    browser.runtime().on_message().add_listener(&closure);
     closure.forget();
 }
 
