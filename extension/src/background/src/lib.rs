@@ -1,8 +1,6 @@
 use js_sys::{Function, Object, Promise};
-use serde::Deserialize;
-use serde::Serialize;
-use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsCast;
+use serde::{Deserialize, Serialize};
+use wasm_bindgen::{prelude::*, JsCast};
 
 #[wasm_bindgen]
 extern "C" {

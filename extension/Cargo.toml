@@ -1,14 +1,14 @@
 [package]
 name = "waves_wallet"
 version = "0.2.0"
-authors = ["Philipp Hoenisch <philipp@hoenisch.at"]
+authors = [ "Philipp Hoenisch <philipp@hoenisch.at" ]
 edition = "2018"
 
 [workspace]
-members = ["src/background", "src/content", "src/in_page"]
+members = [ "src/background", "src/content", "src/in_page" ]
 
 [lib]
-crate-type = ["cdylib", "rlib"]
+crate-type = [ "cdylib", "rlib" ]
 
 [dependencies]
 log = "0.4"
@@ -25,4 +25,3 @@ version = "0.3"
 features = [
     'KeyboardEvent',
 ]
-
