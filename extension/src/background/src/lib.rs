@@ -101,7 +101,6 @@ pub fn main() {
         }
 
         log::info!("BS: Received from CS: {:?}", &msg);
-        let response = JsValue::from("World");
         let popup = Popup {
             url: "popup.html".to_string(),
             type_: "popup".to_string(),
@@ -112,11 +111,10 @@ pub fn main() {
         let object = Object::try_from(&js_value).unwrap();
         let x = browser.windows().create(&object);
 
-        let (mut sender, mut receiver) = mpsc::channel::<JsValue>(10);
+        let (sender, mut receiver) = mpsc::channel::<JsValue>(10);
 
-        let mut sender = sender.clone();
         let cb = Closure::wrap(Box::new(move |window_js_value: JsValue| {
-            let mut sender = sender.clone();
+            let sender = sender.clone();
             let popup_window: PopupWindow = window_js_value.into_serde().unwrap();
             let cb = Closure::wrap(Box::new(move |js_value: JsValue| {
                 let mut sender = sender.clone();
