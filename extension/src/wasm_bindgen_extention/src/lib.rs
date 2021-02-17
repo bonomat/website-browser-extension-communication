@@ -79,12 +79,7 @@ extern "C" {
     pub fn post_message(this: &Window, value: JsValue);
 
     #[wasm_bindgen(method, js_name = addEventListener)]
-    pub fn add_event_listener(
-        this: &Window,
-        event: &str,
-        // TODO: do we have to use MessageEvent here?
-        closure: &Function,
-    ) -> JsValue;
+    pub fn add_event_listener(this: &Window, event: &str, closure: &Function) -> JsValue;
 
     #[wasm_bindgen(method, js_name = removeEventListener)]
     pub fn remove_event_listener(this: &Window, event: &str, closure: &Function);
