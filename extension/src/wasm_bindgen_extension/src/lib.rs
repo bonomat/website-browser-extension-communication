@@ -3,6 +3,7 @@ use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 extern "C" {
+    #[derive(Debug)]
     pub type Browser;
 
     pub static browser: Browser;
@@ -12,11 +13,11 @@ extern "C" {
 
     #[wasm_bindgen(method, getter)]
     pub fn runtime(this: &Browser) -> Runtime;
-
 }
 
 #[wasm_bindgen]
 extern "C" {
+    #[derive(Debug)]
     pub type Windows;
 
     #[wasm_bindgen(method)]
@@ -28,6 +29,7 @@ extern "C" {
 
 #[wasm_bindgen]
 extern "C" {
+    #[derive(Debug)]
     pub type Runtime;
 
     #[wasm_bindgen(method, getter, js_name = onMessage)]
@@ -50,22 +52,19 @@ extern "C" {
 
     #[wasm_bindgen(method, js_name = addListener)]
     pub fn add_listener(this: &Event, closure: &Function);
-
 }
 
 #[wasm_bindgen]
 extern "C" {
-
     #[derive(Debug)]
     pub type Document;
 
     #[wasm_bindgen(method)]
     pub fn write(this: &Document, content: String);
-
 }
 
 #[wasm_bindgen]
 extern "C" {
+    #[derive(Debug)]
     pub type Background;
-
 }
