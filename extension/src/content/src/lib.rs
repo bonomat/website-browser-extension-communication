@@ -1,5 +1,5 @@
 use js_sys::Promise;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::future::Future;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::{spawn_local, JsFuture};
@@ -75,7 +75,13 @@ pub async fn main() -> Result<(), JsValue> {
         // TODO: Actually only accept messages from IPS
         if let Some(string) = js_value.as_string() {
             log::info!("CS: Received from IPS: {:?}", string);
-
+            let msg = Message {
+                data: string,
+                target: "background".to_string(),
+                source: Some("content".to_string()),
+            };
+            // sending message to Background script
+            let js_value = JsValue::from_serde(&msg).unwrap();
             let resp: Promise = browser.runtime().send_message(js_value);
             spawn(async move {
                 let resp = JsFuture::from(resp).await?;
@@ -85,6 +91,7 @@ pub async fn main() -> Result<(), JsValue> {
                     JsValue::from_serde(&Message {
                         data: resp.as_string().unwrap(),
                         target: "in-page".to_string(),
+                        source: Some("content".to_string()),
                     })
                     .unwrap(),
                 );
@@ -101,10 +108,11 @@ pub async fn main() -> Result<(), JsValue> {
     Ok(())
 }
 
-#[derive(Serialize)]
+#[derive(Deserialize, Serialize)]
 struct Message {
     data: String,
     target: String,
+    source: Option<String>,
 }
 
 pub fn unwrap_future<F>(future: F) -> impl Future<Output = ()>
