@@ -2,7 +2,7 @@ use futures::{channel::mpsc, StreamExt};
 use js_sys::{Object, Promise};
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::{prelude::*, JsCast};
-use wasm_bindgen_extention::browser;
+use wasm_bindgen_extension::browser;
 use wasm_bindgen_futures::future_to_promise;
 
 #[wasm_bindgen]

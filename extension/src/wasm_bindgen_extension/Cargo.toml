@@ -1,5 +1,5 @@
 [package]
-name = "wasm-bindgen-extention"
+name = "wasm-bindgen-extension"
 version = "0.1.0"
 authors = [ "Philipp Hoenisch <philipp@hoenisch.at>" ]
 edition = "2018"

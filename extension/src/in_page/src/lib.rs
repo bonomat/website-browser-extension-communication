@@ -4,7 +4,7 @@ use js_sys::{global, Object, Promise};
 use serde::Deserialize;
 use std::future::Future;
 use wasm_bindgen::{prelude::*, JsCast};
-use wasm_bindgen_extention::window;
+use wasm_bindgen_extension::window;
 use wasm_bindgen_futures::{future_to_promise, spawn_local};
 use web_sys::MessageEvent;
 
