@@ -4,7 +4,6 @@ use js_sys::{global, Object, Promise};
 use serde::Deserialize;
 use std::future::Future;
 use wasm_bindgen::{prelude::*, JsCast};
-use wasm_bindgen_extension::window;
 use wasm_bindgen_futures::{future_to_promise, spawn_local};
 use web_sys::MessageEvent;
 
@@ -48,7 +47,8 @@ pub fn call_backend(txt: String) -> Promise {
     let cb = Closure::wrap(Box::new(func) as Box<dyn FnMut(MessageEvent)>);
     let listener = Listener::new("message".to_string(), cb);
 
-    window.post_message(js_value);
+    let window = web_sys::window().expect("no global `window` exists");
+    window.post_message(&js_value, "*").unwrap();
 
     let fut = async move {
         let response = receiver.next().await;
@@ -77,7 +77,10 @@ where
     where
         F: FnMut(MessageEvent) + 'static,
     {
-        window.add_event_listener(&name, cb.as_ref().unchecked_ref());
+        let window = web_sys::window().expect("no global `window` exists");
+        window
+            .add_event_listener_with_callback(&name, cb.as_ref().unchecked_ref())
+            .unwrap();
 
         Self { name, cb }
     }
@@ -88,7 +91,10 @@ where
     F: ?Sized,
 {
     fn drop(&mut self) {
-        window.remove_event_listener(&self.name, self.cb.as_ref().unchecked_ref());
+        let window = web_sys::window().expect("no global `window` exists");
+        window
+            .remove_event_listener_with_callback(&self.name, self.cb.as_ref().unchecked_ref())
+            .unwrap();
     }
 }
 

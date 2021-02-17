@@ -13,10 +13,8 @@ pub async fn main() -> Result<(), JsValue> {
     wasm_logger::init(wasm_logger::Config::new(log::Level::Debug));
     log::info!("CS: Hello World");
 
-    let rs_window = web_sys::window().expect("no global `window` exists");
-    let document = rs_window
-        .document()
-        .expect("should have a document on window");
+    let window = web_sys::window().expect("no global `window` exists");
+    let document = window.document().expect("should have a document on window");
     let head = document.head().expect("document should have a body");
 
     let url = browser.runtime().get_url("js/in_page.js".to_string());
@@ -47,11 +45,11 @@ pub async fn main() -> Result<(), JsValue> {
             let js_value = JsValue::from_serde(&msg).unwrap();
             let resp: Promise = browser.runtime().send_message(js_value);
             spawn(async {
-                let rs_window = web_sys::window().expect("no global `window` exists");
+                let window = web_sys::window().expect("no global `window` exists");
                 let resp = JsFuture::from(resp).await?;
                 log::info!("CS: Received response from BS: {:?}", resp);
 
-                rs_window.post_message(
+                window.post_message(
                     &JsValue::from_serde(&Message {
                         data: resp.as_string().unwrap(),
                         target: "in-page".to_string(),
@@ -66,7 +64,7 @@ pub async fn main() -> Result<(), JsValue> {
     };
 
     let cb = Closure::wrap(Box::new(func) as Box<dyn Fn(_)>);
-    rs_window
+    window
         .add_event_listener_with_callback("message", cb.as_ref().unchecked_ref())
         .unwrap();
 

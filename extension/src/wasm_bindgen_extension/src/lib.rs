@@ -64,28 +64,6 @@ extern "C" {
 
 }
 
-// TODO use js_sys::Window instead?
-#[wasm_bindgen]
-extern "C" {
-    #[derive(Debug)]
-    pub type Window;
-
-    pub static window: Window;
-
-    #[wasm_bindgen(method, getter)]
-    pub fn document(this: &Window) -> Document;
-
-    #[wasm_bindgen(method, js_name = postMessage)]
-    pub fn post_message(this: &Window, value: JsValue);
-
-    #[wasm_bindgen(method, js_name = addEventListener)]
-    pub fn add_event_listener(this: &Window, event: &str, closure: &Function) -> JsValue;
-
-    #[wasm_bindgen(method, js_name = removeEventListener)]
-    pub fn remove_event_listener(this: &Window, event: &str, closure: &Function);
-
-}
-
 #[wasm_bindgen]
 extern "C" {
     pub type Background;
