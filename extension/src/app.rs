@@ -1,3 +1,4 @@
+use wasm_bindgen::prelude::*;
 use yew::prelude::*;
 
 pub struct App {}
@@ -9,6 +10,11 @@ impl Component for App {
     type Properties = ();
 
     fn create(_: Self::Properties, _: ComponentLink<Self>) -> Self {
+        log::debug!(
+            "Is the wallet locked: {:?}",
+            browser.runtime().get_background_page().is_locked()
+        );
+
         App {}
     }
 
@@ -22,11 +28,37 @@ impl Component for App {
 
     fn view(&self) -> Html {
         html! {
-            <p>{ "Hello world!" }</p>
+            <p>{ "Hello worlds!" }</p>
         }
     }
 
     fn rendered(&mut self, _first_render: bool) {}
 
     fn destroy(&mut self) {}
+}
+
+#[wasm_bindgen]
+extern "C" {
+    pub type Browser;
+    pub static browser: Browser;
+
+    #[wasm_bindgen(method, getter)]
+    pub fn runtime(this: &Browser) -> Runtime;
+
+}
+
+#[wasm_bindgen]
+extern "C" {
+    pub type Runtime;
+
+    #[wasm_bindgen(method, js_name = getBackgroundPage)]
+    pub fn get_background_page(this: &Runtime) -> Background;
+}
+
+#[wasm_bindgen]
+extern "C" {
+    pub type Background;
+
+    #[wasm_bindgen(method)]
+    pub fn is_locked(this: &Background) -> bool;
 }

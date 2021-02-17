@@ -59,6 +59,11 @@ extern "C" {
 
 }
 
+#[wasm_bindgen]
+pub fn is_locked() -> bool {
+    true
+}
+
 #[wasm_bindgen(start)]
 pub fn main() {
     wasm_logger::init(wasm_logger::Config::new(log::Level::Debug));
@@ -77,7 +82,7 @@ pub fn main() {
     let func = |msg: JsValue| {
         log::info!("BS: Received from CS: {}", msg.as_string().unwrap());
         let response = JsValue::from("World");
-        return Promise::resolve(&response);
+        Promise::resolve(&response)
     };
     let closure = Closure::wrap(Box::new(func) as Box<dyn Fn(_) -> Promise>);
     browser.runtime().on_message().add_listener(&closure);
