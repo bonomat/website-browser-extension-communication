@@ -30,7 +30,7 @@ extern "C" {
 extern "C" {
     pub type Runtime;
 
-    #[wasm_bindgen(method, js_name = onMessage)]
+    #[wasm_bindgen(method, getter, js_name = onMessage)]
     pub fn on_message(this: &Runtime) -> Event;
 
     #[wasm_bindgen(method, js_name = getURL)]

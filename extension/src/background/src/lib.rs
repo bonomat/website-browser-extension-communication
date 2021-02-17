@@ -1,75 +1,9 @@
-use futures::{
-    channel::{mpsc, oneshot},
-    StreamExt,
-};
-use js_sys::{Function, Object, Promise};
+use futures::{channel::mpsc, StreamExt};
+use js_sys::{Object, Promise};
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::{prelude::*, JsCast};
+use wasm_bindgen_extention::browser;
 use wasm_bindgen_futures::future_to_promise;
-
-#[wasm_bindgen]
-extern "C" {
-
-    #[derive(Debug)]
-    pub type Document;
-
-    #[wasm_bindgen(method)]
-    pub fn write(this: &Document, content: String);
-
-}
-
-#[wasm_bindgen]
-extern "C" {
-    #[derive(Debug)]
-    pub type Window;
-
-    pub static window: Window;
-
-    #[wasm_bindgen(method, getter)]
-    pub fn document(this: &Window) -> Document;
-
-}
-
-#[wasm_bindgen]
-extern "C" {
-    pub type Browser;
-    pub static browser: Browser;
-
-    #[wasm_bindgen(method, getter)]
-    pub fn windows(this: &Browser) -> Windows;
-
-    #[wasm_bindgen(method, getter)]
-    pub fn runtime(this: &Browser) -> Runtime;
-
-}
-
-#[wasm_bindgen]
-extern "C" {
-    pub type Windows;
-
-    #[wasm_bindgen(method)]
-    pub fn create(this: &Windows, info: &Object) -> Promise;
-
-    #[wasm_bindgen(method)]
-    pub fn remove(this: &Windows, window_id: u16) -> Promise;
-}
-
-#[wasm_bindgen]
-extern "C" {
-    pub type Runtime;
-
-    #[wasm_bindgen(method, getter, js_name = onMessage)]
-    pub fn on_message(this: &Runtime) -> Event;
-}
-
-#[wasm_bindgen]
-extern "C" {
-    pub type Event;
-
-    #[wasm_bindgen(method, js_name = addListener)]
-    pub fn add_listener(this: &Event, closure: &Function);
-
-}
 
 #[wasm_bindgen]
 pub fn is_locked() -> bool {
@@ -109,7 +43,7 @@ pub fn main() {
         };
         let js_value = JsValue::from_serde(&popup).unwrap();
         let object = Object::try_from(&js_value).unwrap();
-        let x = browser.windows().create(&object);
+        let popup_window = browser.windows().create(&object);
 
         let (sender, mut receiver) = mpsc::channel::<JsValue>(10);
 
@@ -144,7 +78,7 @@ pub fn main() {
             cb.forget();
             log::info!("Popup created {:?}", popup_window);
         }) as Box<dyn FnMut(JsValue) -> _>);
-        let _promise = x.then(&cb);
+        let _promise = popup_window.then(&cb);
         cb.forget();
 
         let future = async move {
