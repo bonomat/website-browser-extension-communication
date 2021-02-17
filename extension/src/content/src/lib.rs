@@ -46,6 +46,8 @@ extern "C" {
 
 #[wasm_bindgen(start)]
 pub async fn main() -> Result<(), JsValue> {
+    console_error_panic_hook::set_once();
+
     wasm_logger::init(wasm_logger::Config::new(log::Level::Debug));
     log::info!("CS: Hello World");
 
@@ -70,23 +72,25 @@ pub async fn main() -> Result<(), JsValue> {
     // create listener
     let func = |msg: MessageEvent| {
         let js_value: JsValue = msg.data();
-        let string = js_value.as_string().unwrap();
-        log::info!("CS: Received from IPS: {:?}", string);
+        // TODO: Actually only accept messages from IPS
+        if let Some(string) = js_value.as_string() {
+            log::info!("CS: Received from IPS: {:?}", string);
 
-        let resp: Promise = browser.runtime().send_message(js_value);
-        spawn(async move {
-            let resp = JsFuture::from(resp).await?;
-            log::info!("CS: Received response from BS: {:?}", resp);
+            let resp: Promise = browser.runtime().send_message(js_value);
+            spawn(async move {
+                let resp = JsFuture::from(resp).await?;
+                log::info!("CS: Received response from BS: {:?}", resp);
 
-            window.post_message(
-                JsValue::from_serde(&Message {
-                    data: resp.as_string().unwrap(),
-                    target: "in-page".to_string(),
-                })
-                .unwrap(),
-            );
-            Ok(())
-        });
+                window.post_message(
+                    JsValue::from_serde(&Message {
+                        data: resp.as_string().unwrap(),
+                        target: "in-page".to_string(),
+                    })
+                    .unwrap(),
+                );
+                Ok(())
+            });
+        }
     };
 
     let cb = Closure::wrap(Box::new(func) as Box<dyn Fn(_)>);

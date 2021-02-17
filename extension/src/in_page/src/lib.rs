@@ -1,9 +1,9 @@
 extern crate console_error_panic_hook;
 use futures::{channel::mpsc, StreamExt};
-use js_sys::{global, Object, Promise};
+use js_sys::{global, Function, Object, Promise};
 use serde::Deserialize;
 use std::future::Future;
-use wasm_bindgen::prelude::*;
+use wasm_bindgen::{prelude::*, JsCast};
 use wasm_bindgen_futures::{future_to_promise, spawn_local};
 use web_sys::MessageEvent;
 
@@ -44,20 +44,51 @@ pub fn call_backend(txt: String) -> Promise {
         }
     };
 
-    let closure = Closure::wrap(Box::new(func) as Box<dyn FnMut(_)>);
-
-    // TODO remove event listener again
-    window.add_event_listener("message".to_string(), &closure);
+    let cb = Closure::wrap(Box::new(func) as Box<dyn FnMut(MessageEvent)>);
+    let listener = Listener::new("message".to_string(), cb);
 
     window.post_message(js_value);
-    closure.forget();
 
     let fut = async move {
         let response = receiver.next().await;
-        response.ok_or_else(|| JsValue::from_str("IPS: No response from CS"))
+        let response = response.ok_or_else(|| JsValue::from_str("IPS: No response from CS"))?;
+
+        drop(listener);
+        Ok(response)
     };
 
-    return future_to_promise(fut);
+    future_to_promise(fut)
+}
+
+struct Listener<F>
+where
+    F: ?Sized,
+{
+    name: String,
+    cb: Closure<F>,
+}
+
+impl<F> Listener<F>
+where
+    F: ?Sized,
+{
+    fn new(name: String, cb: Closure<F>) -> Self
+    where
+        F: FnMut(MessageEvent) + 'static,
+    {
+        window.add_event_listener(&name, cb.as_ref().unchecked_ref());
+
+        Self { name, cb }
+    }
+}
+
+impl<F> Drop for Listener<F>
+where
+    F: ?Sized,
+{
+    fn drop(&mut self) {
+        window.remove_event_listener(&self.name, self.cb.as_ref().unchecked_ref());
+    }
 }
 
 #[derive(Deserialize)]
@@ -79,20 +110,21 @@ extern "C" {
     #[wasm_bindgen(method, js_name = addEventListener)]
     pub fn add_event_listener(
         this: &Window,
-        event: String,
+        event: &str,
         // TODO: do we have to use MessageEvent here?
-        closure: &Closure<dyn FnMut(MessageEvent)>,
+        closure: &Function,
     ) -> JsValue;
+
+    #[wasm_bindgen(method, js_name = removeEventListener)]
+    pub fn remove_event_listener(this: &Window, event: &str, closure: &Function);
 }
 
-pub fn unwrap_future<F>(future: F) -> impl Future<Output = ()>
+async fn unwrap_future<F>(future: F)
 where
     F: Future<Output = Result<(), JsValue>>,
 {
-    async {
-        if let Err(e) = future.await {
-            log::error!("{:?}", &e);
-        }
+    if let Err(e) = future.await {
+        log::error!("{:?}", &e);
     }
 }
 
