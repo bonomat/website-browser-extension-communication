@@ -1,9 +1,10 @@
 extern crate console_error_panic_hook;
 use futures::{channel::mpsc, StreamExt};
-use js_sys::{global, Function, Object, Promise};
+use js_sys::{global, Object, Promise};
 use serde::Deserialize;
 use std::future::Future;
 use wasm_bindgen::{prelude::*, JsCast};
+use wasm_bindgen_extention::window;
 use wasm_bindgen_futures::{future_to_promise, spawn_local};
 use web_sys::MessageEvent;
 
@@ -95,28 +96,6 @@ where
 struct Message {
     data: String,
     target: String,
-}
-
-#[wasm_bindgen]
-extern "C" {
-    #[derive(Debug)]
-    pub type Window;
-
-    pub static window: Window;
-
-    #[wasm_bindgen(method, js_name = postMessage)]
-    pub fn post_message(this: &Window, value: JsValue);
-
-    #[wasm_bindgen(method, js_name = addEventListener)]
-    pub fn add_event_listener(
-        this: &Window,
-        event: &str,
-        // TODO: do we have to use MessageEvent here?
-        closure: &Function,
-    ) -> JsValue;
-
-    #[wasm_bindgen(method, js_name = removeEventListener)]
-    pub fn remove_event_listener(this: &Window, event: &str, closure: &Function);
 }
 
 async fn unwrap_future<F>(future: F)
