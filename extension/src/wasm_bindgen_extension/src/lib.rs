@@ -52,6 +52,9 @@ extern "C" {
 
     #[wasm_bindgen(method, js_name = addListener)]
     pub fn add_listener(this: &Event, closure: &Function);
+
+    #[wasm_bindgen(method, js_name = removeListener)]
+    pub fn remove_listener(this: &Event, closure: &Function);
 }
 
 #[wasm_bindgen]
