@@ -12,6 +12,7 @@ pub fn is_locked() -> bool {
 
 #[wasm_bindgen(start)]
 pub fn main() {
+    console_error_panic_hook::set_once();
     wasm_logger::init(wasm_logger::Config::new(log::Level::Debug));
     log::info!("BS: Hello World");
 
@@ -69,7 +70,7 @@ pub fn main() {
 
                 sender.try_send(JsValue::from(msg.data)).unwrap();
 
-                return Promise::resolve(&JsValue::from_str("ACK2"));
+                Promise::resolve(&JsValue::from_str("ACK2"))
             }) as Box<dyn FnMut(JsValue) -> Promise>);
             browser
                 .runtime()
@@ -88,7 +89,7 @@ pub fn main() {
             Ok(response)
         };
 
-        return future_to_promise(future);
+        future_to_promise(future)
     };
     let closure = Closure::wrap(Box::new(func) as Box<dyn Fn(_) -> Promise>);
     browser
