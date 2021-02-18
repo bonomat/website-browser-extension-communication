@@ -1,9 +1,8 @@
-use js_sys::Promise;
 use serde::{Deserialize, Serialize};
 use std::future::Future;
 use wasm_bindgen::{prelude::*, JsCast};
 use wasm_bindgen_extension::browser;
-use wasm_bindgen_futures::{spawn_local, JsFuture};
+use wasm_bindgen_futures::spawn_local;
 use web_sys::MessageEvent;
 
 #[wasm_bindgen(start)]
@@ -30,7 +29,7 @@ pub async fn main() -> Result<(), JsValue> {
         .unwrap();
 
     // create listener
-    let func = |msg: JsValue| {
+    let handle_msg_from_ips = |msg: JsValue| {
         let msg: MessageEvent = msg.into();
         let js_value: JsValue = msg.data();
         // TODO: Actually only accept messages from IPS
@@ -43,32 +42,51 @@ pub async fn main() -> Result<(), JsValue> {
             };
             // sending message to Background script
             let js_value = JsValue::from_serde(&msg).unwrap();
-            let resp: Promise = browser.runtime().send_message(js_value);
-            spawn(async {
-                let window = web_sys::window().expect("no global `window` exists");
-                let resp = JsFuture::from(resp).await?;
-                log::info!("CS: Received response from BS: {:?}", resp);
 
-                window.post_message(
-                    &JsValue::from_serde(&Message {
-                        data: resp.as_string().unwrap(),
-                        target: "in-page".to_string(),
-                        source: Some("content".to_string()),
-                    })
-                    .unwrap(),
-                    "*",
-                )?;
-                Ok(())
-            });
+            // TODO: Handle error response?
+            let _resp = browser.runtime().send_message(js_value);
         }
     };
 
-    let cb = Closure::wrap(Box::new(func) as Box<dyn Fn(_)>);
+    let cb_handle_msg_from_ips = Closure::wrap(Box::new(handle_msg_from_ips) as Box<dyn Fn(_)>);
     window
-        .add_event_listener_with_callback("message", cb.as_ref().unchecked_ref())
+        .add_event_listener_with_callback(
+            "message",
+            cb_handle_msg_from_ips.as_ref().unchecked_ref(),
+        )
         .unwrap();
+    cb_handle_msg_from_ips.forget();
 
-    cb.forget();
+    let handle_msg_from_bs = Closure::wrap(Box::new(|msg: JsValue| {
+        // TODO: Filter different messages
+
+        let window = web_sys::window().expect("no global `window` exists");
+        log::info!("CS: Received response from BS: {:?}", msg);
+
+        window
+            .post_message(
+                &JsValue::from_serde(&Message {
+                    data: msg.as_string().unwrap(),
+                    target: "in-page".to_string(),
+                    source: Some("content".to_string()),
+                })
+                .unwrap(),
+                "*",
+            )
+            .unwrap();
+    }) as Box<dyn Fn(_)>);
+
+    // browser.runtime.onMessage.addListener(request => {
+    //   console.log("Message from the background script:");
+    //   console.log(request.greeting);
+    //   return Promise.resolve({response: "Hi from content script"});
+    // });
+
+    browser
+        .runtime()
+        .on_message()
+        .add_listener(handle_msg_from_bs.as_ref().unchecked_ref());
+    handle_msg_from_bs.forget();
 
     Ok(())
 }

@@ -1,4 +1,5 @@
 use js_sys::{Function, Object, Promise};
+use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -13,6 +14,37 @@ extern "C" {
 
     #[wasm_bindgen(method, getter)]
     pub fn runtime(this: &Browser) -> Runtime;
+
+    #[wasm_bindgen(method, getter)]
+    pub fn tabs(this: &Browser) -> Tabs;
+}
+
+#[wasm_bindgen]
+extern "C" {
+    #[derive(Debug)]
+    pub type Tabs;
+
+    #[wasm_bindgen(method)]
+    pub fn query(this: &Tabs, info: &Object) -> Promise;
+
+    #[wasm_bindgen(method, js_name = sendMessage)]
+    pub fn send_message(this: &Tabs, id: u32, msg: JsValue, options: JsValue) -> Promise;
+}
+
+#[derive(Serialize)]
+pub struct QueryObject {
+    #[serde(rename = "currentWindow")]
+    pub current_window: bool,
+    pub active: bool,
+}
+
+#[wasm_bindgen]
+extern "C" {
+    #[derive(Debug)]
+    pub type Tab;
+
+    #[wasm_bindgen(method, getter)]
+    pub fn id(this: &Tab) -> u32;
 }
 
 #[wasm_bindgen]
