@@ -62,11 +62,12 @@ pub async fn main() -> Result<(), JsValue> {
 
         let window = web_sys::window().expect("no global `window` exists");
         log::info!("CS: Received response from BS: {:?}", msg);
+        let msg: Message = msg.into_serde().unwrap();
 
         window
             .post_message(
                 &JsValue::from_serde(&Message {
-                    data: msg.as_string().unwrap(),
+                    data: msg.data,
                     target: "in-page".to_string(),
                     source: Some("content".to_string()),
                 })

@@ -55,7 +55,7 @@
     "unlimitedStorage",
     "webNavigation",
     "webRequest",
-    "webRequestBlocking",
+    "webRequestBlocking"
   ],
   "content_scripts": [
     {
