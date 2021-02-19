@@ -1,8 +1,18 @@
-use js_sys::{Array, Object};
+use js_sys::Object;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::{prelude::*, JsCast};
-use wasm_bindgen_extension::{browser, QueryObject, Tab};
-use wasm_bindgen_futures::{spawn_local, JsFuture};
+use wasm_bindgen_extension::browser;
+use wasm_bindgen_futures::spawn_local;
+
+#[derive(Debug, Deserialize)]
+struct MessageSender {
+    tab: Option<Tab>,
+}
+
+#[derive(Debug, Deserialize)]
+struct Tab {
+    id: u32,
+}
 
 #[wasm_bindgen(start)]
 pub fn main() {
@@ -10,25 +20,28 @@ pub fn main() {
     wasm_logger::init(wasm_logger::Config::new(log::Level::Debug));
     log::info!("BS: Hello World");
 
-    // TODO: Forward tab ID of source to PS, so that we can return the reponse back to the CS
-    // https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/runtime/onMessage#addlistener_syntax
-    let handle_msg_from_cs = Closure::wrap(Box::new(|js_value: JsValue| {
-        if !js_value.is_object() {
-            let log = format!("Invalid request: {:?}", js_value);
+    let handle_msg_from_cs = Closure::wrap(Box::new(|msg: JsValue, message_sender: JsValue| {
+        if !msg.is_object() {
+            let log = format!("Invalid request: {:?}", msg);
             log::error!("{}", log);
             return;
         }
 
-        let msg: Message = js_value.into_serde().unwrap();
+        let msg: Message = msg.into_serde().unwrap();
         if msg.target != "background" || msg.source != "content" {
             log::debug!("Unexpected message: {:?}", msg);
             return;
         }
 
+        let message_sender: MessageSender = message_sender.into_serde().unwrap();
+
         log::info!("BS: Received from CS: {:?}", &msg);
 
         let popup = Popup {
-            url: "popup.html".to_string(),
+            url: format!(
+                "popup.html?content_tab_id={}",
+                message_sender.tab.expect("tab id to exist").id
+            ),
             type_: "popup".to_string(),
             height: 200,
             width: 200,
@@ -38,7 +51,7 @@ pub fn main() {
         let popup_window = browser.windows().create(&object);
 
         log::info!("Popup created {:?}", popup_window);
-    }) as Box<dyn Fn(_)>);
+    }) as Box<dyn Fn(_, _)>);
     browser
         .runtime()
         .on_message()
@@ -53,7 +66,13 @@ pub fn main() {
             return;
         }
 
-        let msg: Message = js_value.into_serde().unwrap();
+        let msg: PopupMessage = match js_value.into_serde() {
+            Ok(msg) => msg,
+            Err(_) => {
+                log::debug!("Unexpected message: {:?}", js_value);
+                return;
+            }
+        };
         if msg.target != "background" || msg.source != "popup" {
             log::debug!("Unexpected message: {:?}", msg);
             return;
@@ -62,20 +81,8 @@ pub fn main() {
         log::info!("Received message from Popup: {:?}", msg);
 
         spawn_local(async {
-            let query_object = QueryObject {
-                current_window: false,
-                active: true,
-            };
-            let tabs = browser
-                .tabs()
-                .query(Object::try_from(&JsValue::from_serde(&query_object).unwrap()).unwrap());
-            let tabs = JsFuture::from(tabs).await.unwrap();
-
-            // TODO: Know the tab ID of the tab where the content script was injected beforehand
-            let tabs: Array = tabs.into();
-            let tab: Tab = tabs.find(&mut |_, _, _| true).unchecked_into();
             let _resp = browser.tabs().send_message(
-                tab.id(),
+                msg.content_tab_id,
                 JsValue::from_serde(&Message {
                     data: msg.data,
                     target: "content".to_string(),
@@ -111,6 +118,14 @@ struct Message {
     data: String,
     target: String,
     source: String,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct PopupMessage {
+    data: String,
+    target: String,
+    source: String,
+    content_tab_id: u32,
 }
 
 #[derive(Debug, Deserialize)]

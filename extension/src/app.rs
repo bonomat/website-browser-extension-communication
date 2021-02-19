@@ -1,10 +1,13 @@
 use js_sys::Promise;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use url::Url;
 use wasm_bindgen::prelude::*;
 use yew::prelude::*;
 
 pub struct App {
     link: ComponentLink<Self>,
+    content_tab_id: u32,
 }
 
 pub enum Msg {
@@ -15,7 +18,8 @@ pub enum Msg {
 struct Message {
     data: String,
     target: String,
-    source: Option<String>,
+    source: String,
+    content_tab_id: u32,
 }
 
 impl Component for App {
@@ -23,7 +27,18 @@ impl Component for App {
     type Properties = ();
 
     fn create(_: Self::Properties, link: ComponentLink<Self>) -> Self {
-        App { link }
+        let window = web_sys::window().expect("no global `window` exists");
+
+        let url = Url::parse(&window.location().href().unwrap()).unwrap();
+        let queries: HashMap<String, String> = url.query_pairs().into_owned().collect();
+        let content_tab_id = queries.get("content_tab_id").unwrap();
+        let content_tab_id = content_tab_id.parse::<u32>().unwrap();
+        log::debug!("Content tab ID = {}", content_tab_id);
+
+        App {
+            link,
+            content_tab_id,
+        }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
@@ -32,7 +47,8 @@ impl Component for App {
                 let msg = Message {
                     data: "signed".to_string(),
                     target: "background".to_string(),
-                    source: Some("popup".to_string()),
+                    source: "popup".to_string(),
+                    content_tab_id: self.content_tab_id,
                 };
                 let js_value = JsValue::from_serde(&msg).unwrap();
                 let _resp = browser.runtime().send_message(js_value);
