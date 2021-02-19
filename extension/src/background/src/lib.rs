@@ -1,8 +1,12 @@
+use conquer_once::Lazy;
+use futures::lock::Mutex;
 use js_sys::Object;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::{prelude::*, JsCast};
 use wasm_bindgen_extension::browser;
 use wasm_bindgen_futures::spawn_local;
+
+static LOADED_WALLET: Lazy<Mutex<Option<String>>> = Lazy::new(Mutex::default);
 
 #[derive(Debug, Deserialize)]
 struct MessageSender {
@@ -19,6 +23,10 @@ pub fn main() {
     console_error_panic_hook::set_once();
     wasm_logger::init(wasm_logger::Config::new(log::Level::Debug));
     log::info!("BS: Hello World");
+
+    spawn_local(async {
+        LOADED_WALLET.lock().await.replace("wallet".to_string());
+    });
 
     let handle_msg_from_cs = Closure::wrap(Box::new(|msg: JsValue, message_sender: JsValue| {
         if !msg.is_object() {
@@ -81,6 +89,10 @@ pub fn main() {
         log::info!("Received message from Popup: {:?}", msg);
 
         spawn_local(async {
+            let guard = LOADED_WALLET.lock().await;
+            let wallet = guard.as_ref().unwrap();
+            log::debug!("Loaded wallet: {}", wallet);
+
             let _resp = browser.tabs().send_message(
                 msg.content_tab_id,
                 JsValue::from_serde(&Message {
